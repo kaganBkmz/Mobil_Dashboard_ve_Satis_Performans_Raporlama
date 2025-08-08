@@ -1,0 +1,685 @@
+var 
+
+yoneticiForm: TclForm;
+
+MyMQTT : TclMQTT;
+
+plasiyer,urun,tutar,tur,AAciklama,miktar:String;
+
+date,BaslangicTarihi,BitisTarihi :TClProDateEdit;
+
+GridSales:TclProGrid;
+
+FRow,FCol,j,i,SndFire:Integer;
+
+Password, DB,kullaniciID : String;
+
+qry,qry2,qry3,qry4:TCLSQLiteQuery;
+
+panel,panel1,panel2: TclProPanel;
+
+filtre,live,exit,raporBtn:TClProButton;
+
+deger,bildirim:Boolean;
+
+baslangicStr, bitisStr,comboBoxName,comboBoxName2: String;
+
+comboBox,comboBox2:TCLCombo;
+
+label1,label2:TClProLabel;
+
+img1,img2,img3,img4:TClProImage;
+
+Switch1 : TclSwitch;
+
+notification:TclMediaPlayer;
+
+titresim :TclDeviceManager; 
+
+
+
+
+void details;
+{
+  Clomosy.RunUnit('uRapor');
+}
+
+
+void switchState;
+ {
+  if(Switch1.IsChecked)
+  { 
+  
+    
+    bildirim=True;
+    img4.Visible=False;
+    img3.Visible=True;
+    titresim.Vibrate(400);
+    img3.Align=alNone;
+    img3.Margins.Top = (panel.Height*20)/100;
+    img3.Margins.Bottom = (panel.Height*20)/100;
+    img3.Position.X = (panel.Width*62)/100;
+    img3.Width = (panel.Width*22)/100;
+    img3.Height =(panel.Height*60)/100; 
+    img3.clProSettings.PictureSource = 'https://img.freepik.com/premium-vector/notification-bell-pictogram_764382-13325.jpg';
+    img3.SetclProSettings(img3.clProSettings);
+    
+   
+   }
+   
+   else
+   {
+    bildirim=False;
+    img3.Visible=False;
+    img4.Visible=True;
+    titresim.Vibrate(400);
+    img4.Align=alNone;
+    img4.Margins.Top = (panel.Height*20)/100;
+    img4.Margins.Bottom = (panel.Height*20)/100;
+    img4.Position.X = (panel.Width*62)/100;
+    img4.Width = (panel.Width*22)/100;
+    img4.Height =(panel.Height*60)/100; 
+    img4.clProSettings.PictureSource = 'https://png.pngtree.com/png-vector/20250307/ourmid/pngtree-notification-mute-icon-png-image_15738344.png';
+    img4.SetclProSettings(img4.clProSettings);
+   
+   }
+   
+ }
+
+
+void change;
+{
+  if(Switch1.IsChecked == True)
+  {
+    Switch1.IsChecked = False;
+    switchState;
+  }
+  else
+  {
+    Switch1.IsChecked = True;
+    switchState;
+  }
+}
+
+
+
+
+void creatDatabaseAndConnect;
+{
+  Password = '';
+  
+  if (Clomosy.PlatformIsMobile)
+    DB = Clomosy.AppFilesPath + 'new2.db3';
+  else
+    DB = 'C:\klasor\new.db3';
+    
+  try
+  
+    Clomosy.DBSQLiteConnect(DB, Password);
+    Clomosy.DBSQLiteQuery.Sql.Text='CREATE TABLE IF NOT EXISTS Satis(ID INTEGER PRIMARY KEY AUTOINCREMENT,plasiyerName Text, productName Text, price INTEGER,amount INTEGER,Tur Text,comment Text,currentdateDB Text)';
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+   
+    
+  except
+  ShowMessage('Exception Class: '+LastExceptionClassName+'Exception Message: '+LastExceptionMessage);
+  }
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
+
+void setGrids;
+{
+  
+ 
+  for (i = 0 to GridSales.ColumnCount-1 )
+  {
+    
+     GridSales.HorzAlignments[i,0] = 0; // Merkez
+
+    //başlıklar hariç tüm satırlar
+    for (j = 1 to GridSales.RowCount-1 )
+    {
+      GridSales.FontStyles[i,j] = 0; // Bold
+      GridSales.FontSizes[i,j] = 14;
+      GridSales.HorzAlignments[i,j] = 0; // Merkez
+      GridSales.VertAlignments[i,j] = 0; // Merkez
+    }
+  }  
+
+    
+    GridSales.ColumnWidths[0] = 50;
+    GridSales.ColumnWidths[1] = 110;
+    GridSales.ColumnWidths[2] = 110;
+    GridSales.ColumnWidths[3] = 100; 
+    GridSales.ColumnWidths[4] = 80;
+    GridSales.ColumnWidths[5] = 120;
+    GridSales.ColumnWidths[6] = 200;
+    
+    GridSales.FontSizes[0,0] = 14;
+    GridSales.FontSizes[1,0] = 14;
+    GridSales.FontSizes[2,0] = 14;
+    GridSales.FontSizes[3,0] = 14;
+    GridSales.FontSizes[4,0] = 14;
+    GridSales.FontSizes[5,0] = 14;
+    GridSales.FontSizes[6,0] = 14;
+    
+
+      
+    GridSales.FixedLayoutFillColor = clAlphaColor.clHexToColor('#497574');
+    GridSales.FixedLayoutFontColor = clAlphaColor.clHexToColor('#FFFFFF');
+    
+    GridSales.FocusedLayoutFontColor = clAlphaColor.clHexToColor('#6366f1');
+	  GridSales.Options.Selection.Mode = smSingleRow;
+    GridSales.Options.Editing.Enabled = False;
+    GridSales.FocusedLayoutFillColor = clAlphaColor.clHexToColor('#6fa4be');
+    GridSales.SelectedLayoutFillColor = clAlphaColor.clHexToColor('#b9cfd1');
+    GridSales.NormalLayoutFillColor = clAlphaColor.clHexToColor('#ffffff');
+    GridSales.BandLayoutFillColor = clAlphaColor.clHexToColor('#ffffff');
+    GridSales.FocusedLayoutFontColor = clAlphaColor.clHexToColor('#ededed');
+}
+
+  //-------------------------------------------------------------------------------------------------------------------------------
+  //-------------------------------------------------------------------------------------------------------------------------------
+
+void getdatabasetogrid;
+{
+  
+  qry = 'SELECT ID,plasiyerName,productName,price,amount,Tur,currentdateDB,comment FROM Satis ORDER BY ID DESC';
+  qry = Clomosy.DBSQLiteQueryWith(qry);
+  qry.OpenOrExecute;
+  
+  if (qry.Found)
+  {
+    GridSales.ConnectDataSet(qry);
+    setGrids;
+   
+  }
+  else
+  {
+    ShowMessage(' Veri Tabanında Veri Yok !')
+  }
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
+
+void  getdatabaseFiltered;
+{
+  
+ try
+    qry2 ='SELECT * FROM Satis WHERE 1=1';
+
+    if (BaslangicTarihi.DateStr <> '') {
+      baslangicStr = FormatDateTime('yyyy-mm-dd', BaslangicTarihi.Date);
+      qry2 = qry2 + ' AND currentdateDB >= ' + QuotedStr(baslangicStr);
+    }
+    
+    
+    if (BitisTarihi.DateStr <> '') {
+      bitisStr = FormatDateTime('yyyy-mm-dd', BitisTarihi.Date);
+      qry2 = qry2 + ' AND currentdateDB <= ' + QuotedStr(bitisStr);
+    }
+    
+    
+    
+    if(comboBox.GetItemIndex(comboBox.ItemIndex) <> 'Plasiyer Adı')
+    {
+      comboBoxName = comboBox.GetItemIndex(comboBox.ItemIndex);
+      qry2 = qry2 + 'AND plasiyerName = '+QuotedStr(comboBoxName);
+    }
+    
+    if(comboBox2.GetItemIndex(comboBox2.ItemIndex) <> 'Ürün Adı')
+    {
+      comboBoxName2 = comboBox2.GetItemIndex(comboBox2.ItemIndex);
+      qry2 = qry2 + 'AND productName = '+QuotedStr(comboBoxName2);
+    }
+    
+    qry2 = qry2 + ' ORDER BY ID DESC';
+    qry2 = Clomosy.DBSQLiteQueryWith(qry2);
+    qry2.OpenOrExecute;
+    
+    if (qry2.Found) {
+      GridSales.ConnectDataSet(qry2);
+      setGrids;
+    }
+    else {
+      ShowMessage(baslangicStr + '   ||  ' + bitisStr+#13#10+
+      '  tarihlerinde '+#13#10+
+      ' Plasiyer Adı : '+comboBox.GetItemIndex(comboBox.ItemIndex)+#13#10+
+      ' Ürün Adı : '+comboBox2.GetItemIndex(comboBox2.ItemIndex)+#13#10+
+      '     BULUNAMADI      '
+      
+      );
+    }
+    
+    
+  except
+    ShowMessage(LastExceptionMessage);
+  }
+  
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------------
+
+
+void comboBoxPlasiyerName;{
+  
+  
+  qry3 ='SELECT DISTINCT plasiyerName FROM Satis';
+  qry3 = Clomosy.DBSQLiteQueryWith(qry3);
+  
+  qry3.OpenOrExecute;
+  
+  comboBox.Clear;
+  comboBox.AddItem('Plasiyer Adı','01');
+  
+  while (not qry3.Eof)
+  {
+    comboBox.AddItem(qry3.FieldByName('plasiyerName').AsString,qry3.FieldByName('plasiyerName').AsString);
+    qry3.Next;
+  }
+  qry3.Free;
+}
+
+void comboBoxProductName;{
+  
+  
+  qry4 = 'SELECT DISTINCT productName FROM Satis';
+  qry4 = Clomosy.DBSQLiteQueryWith(qry4);
+
+  qry4.OpenOrExecute;
+  
+  comboBox2.Clear;
+  comboBox2.AddItem('Ürün Adı','01');
+  
+  while (not qry4.Eof)
+  {
+    comboBox2.AddItem(qry4.FieldByName('productName').AsString,qry4.FieldByName('productName').AsString);
+    qry4.Next;
+  }
+  qry4.Free;
+}
+
+
+
+void filtered;
+{
+  deger=False;
+  
+  getdatabaseFiltered;
+}
+
+void lived;
+{
+  deger=True;
+  comboBox.ItemIndex = 0;
+  comboBox2.ItemIndex = 0;
+  getdatabasetogrid;
+  
+}
+
+void ProGridCellDblClick;
+{
+  
+  FRow = yoneticiForm.ClSenderRow;
+  FCol = yoneticiForm.ClSenderCol;
+  ShowMessage(GridSales.GetCellValue(FCol,FRow));
+}
+
+
+
+ void goback;
+ {
+  yoneticiForm.BtnGoBackClick(Self);
+ }
+
+
+
+
+
+void  insertTable;
+{
+try
+  plasiyer = Clomosy.CLParseJSON(MyMQTT.ReceivedMessage,'plasiyer');
+  urun = Clomosy.CLParseJSON(MyMQTT.ReceivedMessage,'urun_adi');
+  tutar = Clomosy.CLParseJSON(MyMQTT.ReceivedMessage,'Satış');
+  tur = Clomosy.CLParseJSON(MyMQTT.ReceivedMessage,'satis_turu');
+  AAciklama = Clomosy.CLParseJSON(MyMQTT.ReceivedMessage,'Aciklama');
+  miktar = Clomosy.CLParseJSON(MyMQTT.ReceivedMessage,'Adet');
+
+
+
+  Clomosy.DBSQLiteQuery.SQL.Text = 'INSERT INTO Satis (plasiyerName,productName,price,amount,Tur,comment,currentdateDB) VALUES (' 
+  +QuotedStr(Plasiyer)+ ','
+  +QuotedStr(Urun)+ ','
+  +IntToStr(tutar)+','
+  +IntToStr(miktar)+','
+  +QuotedStr(tur)+','
+  +QuotedStr(AAciklama)+','
+  +QuotedStr(FormatDateTime('yyyy-mm-dd', date.Date))+')';
+  Clomosy.DBSQLiteQuery.OpenOrExecute;
+  
+except
+ShowMessage('Exception Class: '+LastExceptionClassName+' Exception Message: '+LastExceptionMessage);
+}
+
+}
+
+
+void MyMQTTPublishReceived;
+{
+try
+  if(MyMQTT.ReceivedAlright)
+  {
+ 
+  insertTable;
+  Clomosy.SleepAndCall(100,'',''); 
+ 
+  
+  if(bildirim)
+  {
+    notification.CurrentTime = 0;
+    notification.Play;
+    titresim.Vibrate(400);
+  }
+ 
+    if(deger)
+    {
+      getdatabasetogrid;
+      Clomosy.SleepAndCall(100,'',''); 
+    }
+  }
+  else
+  {
+    ShowMessage('Mqtt  bağlanamadı')
+  }
+  
+  comboBoxPlasiyerName;
+  Clomosy.SleepAndCall(100,'',''); 
+  comboBoxProductName;
+  Clomosy.SleepAndCall(100,'',''); 
+except
+  ShowMessage(LastExceptionMessage);
+  }
+}
+
+
+{
+  yoneticiForm = TclForm.Create(self);
+  yoneticiForm.SetFormColor('#ebebeb', '#cfcfcf', clGVertical);
+  yoneticiForm.LytTopBar.Visible = False;
+  creatDatabaseAndConnect;
+  deger=True;
+  bildirim=True;
+  panel1=yoneticiForm.AddNewProPanel(yoneticiForm, 'panel1');
+  panel2=yoneticiForm.AddNewProPanel(yoneticiForm, 'panel2');
+  panel=yoneticiForm.AddNewProPanel(yoneticiForm, 'panel');
+  img3=yoneticiForm.AddNewProImage(panel, 'img3');
+  img4=yoneticiForm.AddNewProImage(panel, 'img4');
+  kullaniciID = Clomosy.AppUserGUID;
+  titresim = TclDeviceManager.Create; 
+  
+  yoneticiForm.AddAssetFromUrl('https://raw.githubusercontent.com/kaganBkmz/asset/main/definite-555.mp3');
+ // yoneticiForm.AddAssetFromUrl('https://raw.githubusercontent.com/emrkmn/ses/main/eglenceli_yakalama.wav');
+  notification = TclMediaPlayer.Create(yoneticiForm);
+  notification.FileName = clPathCombine('definite-555.mp3', Clomosy.AppFilesPath);
+  notification.Volume = 0.7;
+ 
+ 
+  panel.Align = alMostTop;
+  panel.Margins.Top = 5;
+  panel.Margins.Left = 5;
+  panel.Margins.Right = 5;
+  panel.Height = (yoneticiForm.clHeight*8)/100;
+  panel.Width =  (yoneticiForm.clWidth*100)/100;
+  panel.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#ffffff');
+  panel.clProSettings.IsRound = True;
+  panel.clProSettings.BorderWidth = 2;
+  panel.clProSettings.RoundHeight = 10;
+  panel.clProSettings.RoundWidth = 10;
+  panel.SetclProSettings(panel.clProSettings);
+
+  
+  panel1.Align = alTop;
+  panel1.Margins.Top = 5;
+  panel1.Margins.Left = 5;
+  panel1.Margins.Right = 5;
+  panel1.Height = (yoneticiForm.clHeight*35)/100;
+  panel1.Width =  (yoneticiForm.clWidth*100)/100;
+  panel1.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel1.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#ffffff');
+  panel1.clProSettings.IsRound = True;
+  panel1.clProSettings.BorderWidth = 2;
+  panel1.clProSettings.RoundHeight = 10;
+  panel1.clProSettings.RoundWidth = 10;
+  panel1.SetclProSettings(panel1.clProSettings);
+  
+  
+  
+  panel2.Align = alClient;
+  panel2.Margins.Top = 3;
+  panel2.Margins.Left = 5;
+  panel2.Margins.Right = 5;
+  panel2.SetclProSettings(panel2.clProSettings);
+  
+  
+  
+  date = yoneticiForm.AddNewProDateEdit(panel1,'date');
+  date.Visible=False;
+  
+  label1 =yoneticiForm.AddNewProLabel(panel1, 'label1', 'Başlangıç Tarihi :');
+  label1.Align = alNone;
+  label1.Position.X = (panel1.Width*5)/100;
+  label1.Position.Y = (panel1.Height*12)/100;
+  label1.Width = (panel1.Width*25)/100;
+  label1.Height =(panel1.Height*10)/100; 
+  label1.clProSettings.FontSize = 11;
+  label1.clProSettings.TextSettings.Font.Style = [fsBold,fsUnderline];
+  label1.SetclProSettings(label1.clProSettings);
+  
+  label2 =yoneticiForm.AddNewProLabel(panel1, 'label2', 'Bitiş Tarihi :');
+  label2.Align = alNone;
+  label2.Position.X = (panel1.Width*55)/100;
+  label2.Position.Y = (panel1.Height*12)/100;
+  label2.Width = (panel2.Width*20)/100;
+  label2.Height =(panel2.Height*10)/100; 
+  label2.clProSettings.FontSize = 11;
+  label2.clProSettings.TextSettings.Font.Style = [fsBold,fsUnderline];
+  label2.SetclProSettings(label2.clProSettings);
+  
+  
+  BaslangicTarihi = yoneticiForm.AddNewProDateEdit(panel1,'BaslangicTarihi');
+  BaslangicTarihi.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#ffffff');
+  BaslangicTarihi.Align = alNone;
+  BaslangicTarihi.Position.X = (panel1.Width*5)/100;
+  BaslangicTarihi.Position.Y = (panel1.Height*20)/100;
+  BaslangicTarihi.Width = (panel1.Width*40)/100;
+  BaslangicTarihi.Height =(panel1.Height*15)/100; 
+  BaslangicTarihi.clProSettings.FontHorzAlign = palCenter;
+  BaslangicTarihi.clProSettings.FontVertAlign = palcenter;
+  BaslangicTarihi.clProSettings.FontSize = 15;
+  BaslangicTarihi.clProSettings.IsRound = True;
+  BaslangicTarihi.clProSettings.BorderColor = clAlphaColor.clHexToColor('#141010');
+  BaslangicTarihi.clProSettings.RoundHeight = 7;
+  BaslangicTarihi.clProSettings.RoundWidth = 7;
+  BaslangicTarihi.clProSettings.BorderWidth = 1;
+  BaslangicTarihi.SetclProSettings(BaslangicTarihi.clProSettings);
+  
+  
+  BitisTarihi = yoneticiForm.AddNewProDateEdit(panel1,'BitisTarihi');
+  BitisTarihi.Align = alNone;
+  BitisTarihi.Position.X = (panel1.Width*55)/100;
+  BitisTarihi.Position.Y = (panel1.Height*20)/100;
+  BitisTarihi.Width = (panel1.Width*40)/100;
+  BitisTarihi.Height =(panel1.Height*16)/100; 
+  BitisTarihi.clProSettings.FontHorzAlign = palCenter;
+  BitisTarihi.clProSettings.FontVertAlign = palcenter;
+  BitisTarihi.clProSettings.FontSize = 15;
+  BitisTarihi.clProSettings.IsRound = True;
+  BitisTarihi.clProSettings.BorderColor = clAlphaColor.clHexToColor('#141010');
+  BitisTarihi.clProSettings.RoundHeight = 7;
+  BitisTarihi.clProSettings.RoundWidth = 7;
+  BitisTarihi.clProSettings.BorderWidth = 1; 
+  BitisTarihi.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#ffffff');
+  BitisTarihi.SetclProSettings(BitisTarihi.clProSettings);
+  
+  
+  
+  img1=yoneticiForm.AddNewProImage(panel1, 'img1');
+  img1.Align=alNone;
+  img1.Position.X = (panel1.Width*5)/100;
+  img1.Position.Y = (panel1.Height*45)/100;
+  img1.Width = (panel1.Width*7)/100;
+  img1.Height =(panel1.Height*15)/100; 
+  img1.clProSettings.PictureSource = 'https://static.vecteezy.com/system/resources/thumbnails/007/033/146/small_2x/profile-icon-login-head-icon-vector.jpg';
+  img1.clProSettings.PictureAutoFit = True;
+  img1.SetclProSettings(img1.clProSettings);
+    
+    
+  comboBox=yoneticiForm.AddNewComboBox(panel1, 'comboBox');
+  comboBox.Align = alNone;
+  comboBox.Position.X = (panel1.Width*13)/100;
+  comboBox.Position.Y = (panel1.Height*45)/100;
+  comboBox.Width = (panel1.Width*30)/100;
+  comboBox.Height =(panel1.Height*15)/100; 
+  
+  
+  img2=yoneticiForm.AddNewProImage(panel1, 'img2');
+  img2.Align=alNone;
+  img2.Position.X = (panel1.Width*55)/100;
+  img2.Position.Y = (panel1.Height*45)/100;
+  img2.Width = (panel1.Width*7)/100;
+  img2.Height =(panel1.Height*15)/100; 
+  img2.clProSettings.PictureSource = 'https://images.icon-icons.com/945/PNG/512/Office_-12_icon-icons.com_73953.png';
+  img2.clProSettings.PictureAutoFit = True;
+  img2.SetclProSettings(img2.clProSettings);
+   
+  comboBox2=yoneticiForm.AddNewComboBox(panel1, 'comboBox2');
+  comboBox2.Align = alNone;
+  comboBox2.Position.X = (panel1.Width*63)/100;
+  comboBox2.Position.Y = (panel1.Height*45)/100;
+  comboBox2.Width = (panel1.Width*30)/100;
+  comboBox2.Height =(panel1.Height*15)/100; 
+  
+  
+  filtre = yoneticiForm.AddNewProButton(panel1, 'filtre', 'Filtrele');
+  filtre.Align = alNone;
+  filtre.Position.X = (panel1.Width*5)/100;
+  filtre.Position.Y = (panel1.Height*70)/100;
+  filtre.Width = (panel1.Width*60)/100;
+  filtre.Height =(panel1.Height*20)/100; 
+  filtre.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#00c2ab');
+  filtre.clProSettings.BorderColor = clAlphaColor.clHexToColor('#000000');
+  filtre.clProSettings.IsRound = True;
+  filtre.clProSettings.BorderWidth = 1;
+  filtre.clProSettings.FontSize = 25;
+  filtre.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  filtre.clProSettings.TextSettings.Font.Style=[fsBold];
+  filtre.SetclProSettings(filtre.clProSettings);
+  
+  
+  live = yoneticiForm.AddNewProButton(panel1, 'live', '');
+  live.Align = alNone;
+  live.Width = (panel1.Width*15)/100;
+  live.Height =(panel1.Height*20)/100; 
+  live.Position.X = (panel1.Width*75)/100;
+  live.Position.Y = (panel1.Height*70)/100;
+  live.clProSettings.PictureSource = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Refresh_icon.svg/512px-Refresh_icon.svg.png';
+  live.clProSettings.PictureAutoFit = True;
+  live.clProSettings.IsRound = True;
+  live.clProSettings.BorderColor = clAlphaColor.clHexToColor('#201818');
+  live.clProSettings.RoundHeight = 10;
+  live.clProSettings.RoundWidth = 10;
+  live.clProSettings.BorderWidth = 1;
+  live.SetclProSettings(live.clProSettings);
+  
+  
+  GridSales = yoneticiForm.AddNewProGrid(panel2, 'GridSales');
+  GridSales.Align = alClient;
+  getdatabasetogrid;
+  
+  
+  MyMQTT =yoneticiForm.addnewMQTTConnection(yoneticiForm,'MyMQTT');
+  MyMQTT.Channel = 'Chat';
+  MyMQTT.Connect;
+  
+  comboBoxPlasiyerName;
+  
+  comboBoxProductName;
+  
+  
+  
+  exit = yoneticiForm.AddNewProButton(panel, 'exit', 'Çıkış Yap');
+  exit.Align = alNone;
+  exit.Position.X = (panel.Width*2)/100;
+  exit.Position.Y = (panel.Height*10)/100;
+  exit.Width = (panel.Width*21)/100;
+  exit.Height =(panel.Height*80)/100; 
+  exit.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#b92727');
+  exit.clProSettings.BorderColor = clAlphaColor.clHexToColor('#000000');
+  exit.clProSettings.IsRound = True;
+  exit.clProSettings.BorderWidth = 1;
+  exit.clProSettings.FontSize = 15;
+  exit.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  exit.clProSettings.TextSettings.Font.Style=[fsBold];
+  exit.SetclProSettings(exit.clProSettings);
+  
+  
+  Switch1 = yoneticiForm.AddNewSwitch(panel,'Switch1');
+  Switch1.Align=alMostRight;
+  Switch1.Margins.Top = (panel.Height*10)/100;
+  Switch1.Margins.Bottom = (panel.Height*10)/100;
+  Switch1.Margins.Right = (panel.Width*3)/100;
+  Switch1.Width = (panel.Width*15)/100;
+  Switch1.Height =(panel.Height*80)/100; 
+  Switch1.IsChecked = True;
+  
+ 
+  img3.Align=alRight;
+  img3.Margins.Top = (panel.Height*20)/100;
+  img3.Margins.Bottom = (panel.Height*20)/100;
+  img3.Width = (panel.Width*22)/100;
+  img3.Height =(panel.Height*60)/100; 
+  img3.clProSettings.PictureSource = 'https://img.freepik.com/premium-vector/notification-bell-pictogram_764382-13325.jpg';
+  img3.SetclProSettings(img3.clProSettings);
+  
+  
+  
+  
+  
+  raporBtn = yoneticiForm.AddNewProButton(panel, 'raporBtn', 'Rapor');
+  raporBtn.Align = alNone;
+  raporBtn.Position.X = (panel.Width*37)/100;
+  raporBtn.Position.Y = (panel.Height*10)/100;
+  raporBtn.Width = (panel.Width*20)/100;
+  raporBtn.Height =(panel.Height*80)/100; 
+  raporBtn.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#675cff');
+  raporBtn.clProSettings.BorderColor = clAlphaColor.clHexToColor('#000000');
+  raporBtn.clProSettings.IsRound = True;
+  raporBtn.clProSettings.BorderWidth = 1;
+  raporBtn.clProSettings.FontSize = 15;
+  raporBtn.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  raporBtn.clProSettings.TextSettings.Font.Style=[fsBold];
+  raporBtn.SetclProSettings(raporBtn.clProSettings);
+  
+  
+  
+  yoneticiForm.AddNewEvent(raporBtn,tbeOnClick,'details');
+  yoneticiForm.AddNewEvent(img4,tbeOnClick,'change');
+  yoneticiForm.AddNewEvent(img3,tbeOnClick,'change');
+  yoneticiForm.AddNewEvent(Switch1,tbeOnClick,'switchState');
+  yoneticiForm.AddNewEvent(exit,tbeOnClick,'goback');
+  yoneticiForm.AddNewEvent(live,tbeOnClick,'lived');
+  yoneticiForm.AddNewEvent(filtre,tbeOnClick,'filtered');
+  yoneticiForm.AddNewEvent(GridSales,tbeOnProGridCellDblClick,'ProGridCellDblClick');
+  yoneticiForm.AddNewEvent(MyMQTT,tbeOnMQTTPublishReceived,'MyMQTTPublishReceived');
+  
+  yoneticiForm.Run;
+}

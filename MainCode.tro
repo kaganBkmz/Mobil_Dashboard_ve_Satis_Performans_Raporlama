@@ -1,0 +1,183 @@
+var
+
+anaForm: TclForm;
+
+kullaniciAdEdit: TclProEdit;
+
+loginImg : TCLImage;
+
+girisYap : TClProButton;
+
+Password, DB:String;
+
+kayit:Boolean;
+
+kayitOl : TClProLabel;
+
+
+void creatDatabaseAndConnect;
+{
+  Password = '';
+  
+  if (Clomosy.PlatformIsMobile)
+    DB = Clomosy.AppFilesPath + 'new3.db3';
+  else
+    DB = 'C:\klasor\new.db3';
+    
+  try
+  
+    Clomosy.DBSQLiteConnect(DB, Password);
+    Clomosy.DBSQLiteQuery.Sql.Text='CREATE TABLE IF NOT EXISTS Login(plasiyer Text)';
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+  except
+  ShowMessage('tablo oluşturuluyor...')
+  }
+}
+
+
+void varMi;
+{
+
+ Clomosy.DBSQLiteQuery.Sql.Text ='SELECT plasiyer FROM Login WHERE plasiyer = ' + QuotedStr(kullaniciAdEdit.Text); 
+  Clomosy.DBSQLiteQuery.OpenOrExecute;
+  
+  if (Clomosy.DBSQLiteQuery.Found)
+  {
+    kayit = True;
+    
+  }
+  else
+  {
+    kayit =False;
+    
+  }
+  
+}
+
+
+void yonlendir;
+{
+  varMi;
+
+ if(kullaniciAdEdit.Text == 'yonetici123')
+ {
+  Clomosy.RunUnit('Yonetici');
+  anaForm.clHide;
+ }
+ else
+ {
+  if(kayit){
+    Clomosy.GlobalVariableString = kullaniciAdEdit.Text;
+    Clomosy.RunUnit('Satici');
+    anaForm.clHide;
+  }
+  else
+  {
+    
+    ShowMessage('kayıt bulunamadı kullanıcı adı oluşturunuz !')
+  }
+  
+ }
+ 
+}
+
+
+void ekle;
+{
+  Clomosy.RunUnit('PlasiyerEkle');
+}
+
+{
+
+  anaForm=TclForm.Create(Self);  
+  anaForm.SetFormBGImage('https://cdn.wallpapersafari.com/80/94/AC21PJ.jpg');
+  creatDatabaseAndConnect;
+  kayit=False;
+  
+  
+  
+ 
+  
+ //--------------kullanıcı adı label--------------------
+  kullaniciAdEdit=anaForm.AddNewProEdit(anaForm, 'kullaniciAdEdit', 'Kullanıcı Adınız ');
+  kullaniciAdEdit.Align=alNone;
+  kullaniciAdEdit.Position.X = (anaForm.clWidth*17)/100;
+  kullaniciAdEdit.Position.Y = (anaForm.clHeight*42)/100;
+  kullaniciAdEdit.Height =(anaForm.clHeight*10)/100; 
+  kullaniciAdEdit.Width = (anaForm.clWidth*66)/100;
+  kullaniciAdEdit.clProSettings.RoundHeight=10;
+  kullaniciAdEdit.clProSettings.RoundWidth=10;
+  kullaniciAdEdit.clProSettings.FontVertAlign=palCenter;
+  kullaniciAdEdit.clProSettings.fontHorzAlign=palCenter;
+  kullaniciAdEdit.SetclProSettings(kullaniciAdEdit.clProSettings)
+  kullaniciAdEdit.MaxLength=15;
+  kullaniciAdEdit.TextSettings.Font.Size = 15; 
+ 
+ 
+  //-----------kullanıcıAdı img--------
+  loginImg=anaForm.AddNewImage(kullaniciAdEdit,'loginImg');
+  loginImg.Align=alLeft;
+  loginImg.Margins.Left=5;
+  loginImg.Margins.Top=5;
+  loginImg.Margins.Bottom=5;
+  loginImg.Width=25;
+  anaForm.SetImage(loginImg,'https://static.vecteezy.com/system/resources/thumbnails/007/033/146/small_2x/profile-icon-login-head-icon-vector.jpg');
+  
+  
+  
+  
+  girisYap = anaForm.AddNewProButton(anaForm, 'girisYap', 'Giriş Yap');
+  girisYap.Align=alNone;
+  girisYap.Position.X = (anaForm.clWidth*17)/100;
+  girisYap.Position.Y = (anaForm.clHeight*55)/100;
+  girisYap.Height =(anaForm.clHeight*10)/100; 
+  girisYap.Width = (anaForm.clWidth*66)/100;
+  girisYap.clProSettings.IsRound = True;
+  girisYap.clProSettings.RoundHeight=10;
+  girisYap.clProSettings.RoundWidth=10;
+  girisYap.clProSettings.TextSettings.Font.Style=[fsBold];
+  girisYap.clProSettings.FontVertAlign=palCenter;
+  girisYap.clProSettings.fontHorzAlign=palCenter;
+  girisYap.clProSettings.FontSize = 17;
+  girisYap.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  girisYap.clProSettings.BackgroundColor=clAlphaColor.clHexToColor('#1a8950');
+  girisYap.SetclProSettings(girisYap.clProSettings);
+ 
+ 
+  kayitOl = anaForm.AddNewProButton(anaForm, 'kayitOl', 'Kayıt Ol');
+  kayitOl.Align=alNone;
+  kayitOl.Position.X = (anaForm.clWidth*37)/100;
+  kayitOl.Position.Y = (anaForm.clHeight*70)/100;
+  kayitOl.Height =(anaForm.clHeight*10)/100; 
+  kayitOl.Width = (anaForm.clWidth*26)/100;
+  kayitOl.clProSettings.IsRound = True;
+  kayitOl.clProSettings.RoundHeight=10;
+  kayitOl.clProSettings.RoundWidth=10;
+  kayitOl.clProSettings.TextSettings.Font.Style=[fsBold,fsUnderline];
+  kayitOl.clProSettings.FontSize = 20;
+  kayitOl.clProSettings.BorderColor = clAlphaColor.clHexToColor('#006eff');
+  kayitOl.clProSettings.BorderWidth = 1;
+  kayitOl.clProSettings.FontColor=clAlphaColor.clHexToColor('#006eff');
+  kayitOl.SetclProSettings(kayitOl.clProSettings);
+ 
+ 
+ 
+  anaForm.AddNewEvent(girisYap,tbeOnClick,'yonlendir');
+  anaform.AddNewEvent(kayitOl,tbeOnClick,'ekle');
+  
+  anaForm.Run;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

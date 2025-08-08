@@ -1,0 +1,390 @@
+var
+  istatistikForm: TclForm;
+  DB, Password: String;
+  panel, panel2, panel3, panel4, panel5, panel6: TclProPanel;
+  label1, label2, label3, label4, label5, label6, label7, label8, label9: TClProLabel;
+  VertScrollBox1: TclVertScrollBox;
+  HorzScrollBox1: TCLHorzScrollBox;
+  date: TClProDateEdit;
+  tarih, month: String;
+  Chart1: TCLChart;
+  Qry: TCLSQLiteQuery;
+
+void Connect;
+{
+  Password = '';
+  
+  if (Clomosy.PlatformIsMobile)
+    DB = Clomosy.AppFilesPath + 'new3.db3';
+  else
+    DB = 'C:\klasor\new.db3';
+    
+  try {
+    Clomosy.DBSQLiteConnect(DB, Password);
+  }
+  except {
+    ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+}
+}
+void AddDataToChart;
+{
+  try {
+    Qry =
+      'SELECT product AS urun, SUM(price) AS toplamCiro ' +
+      'FROM PlasiyerTable ' +
+      'GROUP BY product';
+    Qry = Clomosy.DBSQLiteQueryWith(Qry);
+    Qry.OpenOrExecute;
+    
+    if (Qry.Found) {
+      // Chart'ı oluştur
+      Chart1 = istatistikForm.AddNewChart(HorzScrollBox1, 'Chart1', 'Ürün Satış Grafiği');
+      Chart1.Align = alNone;
+      Chart1.Position.X = 0;
+      Chart1.Position.Y = 0;
+      Chart1.Width = (panel6.Width * 3);
+      Chart1.Height = panel6.Height-20;
+      Chart1.Charttype = clCBar;
+      Chart1.XAxisText = 'urun';
+      Chart1.ChartItemText = 'ÜRÜNLER';
+      Chart1.ChartItemsValue = 'toplamCiro';
+      
+      Chart1.SetInteractionPanning(True);
+      Chart1.SetInteractionScaleMode(2); 
+      
+      // Chart başlığı
+      Chart1.ChartTitle = 'Ürün Bazında Toplam Ciro';
+      
+      // Veriyi yükle
+      Chart1.clLoadDataFromDataSet(Qry);
+    }
+    Qry.Close;
+  }
+  except {
+    ShowMessage('Grafik yükleme hatası: ' + LastExceptionClassName + ' - ' + LastExceptionMessage);
+  }
+}
+}
+void dailySalesCount;
+{
+  try {
+    tarih = FormatDateTime('yyyy-mm-dd', date.Date);
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(dailyCount) AS toplamAdet FROM PlasiyerTable WHERE currentdate = ' + QuotedStr(tarih);
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) {
+      label6.Text = Clomosy.DBSQLiteQuery.FieldByName('toplamAdet').AsString;
+    } else {
+      label6.Text = '0';
+    }
+  }
+  except {
+    label6.Text = '0';
+  }
+}
+
+}
+void dailySales;
+{
+  try {
+    tarih = FormatDateTime('yyyy-mm-dd', date.Date);
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(price) AS toplam FROM PlasiyerTable WHERE currentdate = ' + QuotedStr(tarih);
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) {
+      label7.Text = Clomosy.DBSQLiteQuery.FieldByName('toplam').AsString;
+    } else {
+      label7.Text = '0';
+    }
+  }
+  except {
+    label7.Text = '0';
+  }
+}
+}
+void ciro;
+{
+  try {
+    month = FormatDateTime('yyyy-mm', date.Date);
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(price) AS ciro FROM PlasiyerTable WHERE currentdateMonth = ' + QuotedStr(month);
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) {
+      label9.Text = Clomosy.DBSQLiteQuery.FieldByName('ciro').AsString;
+    } else {
+      label9.Text = '0';
+    }
+  }
+  except {
+    label9.Text = '0';
+  }
+}
+}
+void averageSales;
+{
+  if ((label6.Text <> '') && (label7.Text <> '')) {
+    if (StrToInt(label6.Text) <> 0) {
+      label8.Text = IntToStr(StrToInt(label7.Text) / StrToInt(label6.Text));
+    } else {
+      label8.Text = '0';
+    }
+  } else {
+    label8.Text = '0';
+  }
+}
+
+// Tarih değiştiğinde tüm verileri güncelle
+void OnDateChanged;
+{
+  dailySalesCount;
+  dailySales;
+  ciro;
+  averageSales;
+  AddDataToChart; // Grafiği de güncelle
+}
+
+{
+  istatistikForm = TclForm.Create(Self);
+  istatistikForm.SetFormColor('#5b72e6', '#6c6cd0', clGCross);
+  istatistikForm.clSetCaption('Satış İstatistikleri');
+  
+  Connect;
+  
+  VertScrollBox1 = istatistikForm.AddNewVertScrollBox(istatistikForm, 'VertScrollBox1');
+  VertScrollBox1.Align = alTop;
+  VertScrollBox1.Height = istatistikForm.clHeight - 70;
+  VertScrollBox1.ShowScrollBars = True;
+  
+  // Tarih seçici panel
+  panel5 = istatistikForm.AddNewProPanel(VertScrollBox1, 'panel5');
+  panel5.Align = alNone;
+  panel5.Position.X = (istatistikForm.clWidth * 5) / 100;
+  panel5.Position.Y = (istatistikForm.clHeight * 1) / 100;
+  panel5.Width = (istatistikForm.clWidth * 90) / 100;
+  panel5.Height = (istatistikForm.clHeight * 8) / 100;
+  panel5.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#9092de');
+  panel5.clProSettings.BorderColor = clAlphaColor.clHexToColor('#ffffff');
+  panel5.clProSettings.IsRound = True;
+  panel5.clProSettings.BorderWidth = 1;
+  panel5.clProSettings.RoundHeight = 20;
+  panel5.clProSettings.RoundWidth = 20;
+  panel5.SetclProSettings(panel5.clProSettings);
+  
+  // Tarih seçici
+  date = istatistikForm.AddNewProDateEdit(panel5, 'date');
+  date.Align = alRight;
+  date.Margins.Right = 1;
+  date.clProSettings.TextSettings.Font.Style = [fsBold, fsUnderline];
+  date.clProSettings.FontVertAlign = palCenter;
+  date.ReadOnly = True;
+  date.clProSettings.FontSize = 15;
+  date.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  date.SetclProSettings(date.clProSettings);
+  
+  // Tarih değişikliği eventi
+  istatistikForm.AddNewEvent(date, tbeOnChange, 'OnDateChanged');
+  
+  // Başlık
+  label1 = istatistikForm.AddNewProLabel(panel5, 'label1', 'Ürün Satış Bilgileri');
+  label1.Align = alLeft;
+  label1.Margins.Left = 7;
+  label1.Width = ((panel5.Width * 50) / 100);
+  label1.Height = ((panel5.Height * 90) / 100);
+  label1.clProSettings.TextSettings.Font.Style = [fsBold];
+  label1.clProSettings.FontSize = 18;
+  label1.clProSettings.FontVertAlign = palCenter;
+  label1.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label1.SetclProSettings(label1.clProSettings);
+  
+  // İstatistik panelleri
+  panel = istatistikForm.AddNewProPanel(VertScrollBox1, 'panel');
+  panel.Align = alNone;
+  panel.Position.X = (istatistikForm.clWidth * 5) / 100;
+  panel.Position.Y = (istatistikForm.clHeight * 12) / 100;
+  panel.Width = (istatistikForm.clWidth * 42) / 100;
+  panel.Height = (istatistikForm.clHeight * 25) / 100;
+  panel.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#9092de');
+  panel.clProSettings.BorderColor = clAlphaColor.clHexToColor('#ffffff');
+  panel.clProSettings.IsRound = True;
+  panel.clProSettings.BorderWidth = 1;
+  panel.clProSettings.RoundHeight = 20;
+  panel.clProSettings.RoundWidth = 20;
+  panel.SetclProSettings(panel.clProSettings);
+  
+  panel2 = istatistikForm.AddNewProPanel(VertScrollBox1, 'panel2');
+  panel2.Align = alNone;
+  panel2.Position.X = (istatistikForm.clWidth * 53) / 100;
+  panel2.Position.Y = (istatistikForm.clHeight * 12) / 100;
+  panel2.Width = (istatistikForm.clWidth * 42) / 100;
+  panel2.Height = (istatistikForm.clHeight * 25) / 100;
+  panel2.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#9092de');
+  panel2.clProSettings.BorderColor = clAlphaColor.clHexToColor('#ffffff');
+  panel2.clProSettings.IsRound = True;
+  panel2.clProSettings.BorderWidth = 1;
+  panel2.clProSettings.RoundHeight = 20;
+  panel2.clProSettings.RoundWidth = 20;
+  panel2.SetclProSettings(panel2.clProSettings);
+  
+  panel3 = istatistikForm.AddNewProPanel(VertScrollBox1, 'panel3');
+  panel3.Align = alNone;
+  panel3.Position.X = (istatistikForm.clWidth * 5) / 100;
+  panel3.Position.Y = (istatistikForm.clHeight * 40) / 100;
+  panel3.Width = (istatistikForm.clWidth * 42) / 100;
+  panel3.Height = (istatistikForm.clHeight * 25) / 100;
+  panel3.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#9092de');
+  panel3.clProSettings.BorderColor = clAlphaColor.clHexToColor('#ffffff');
+  panel3.clProSettings.IsRound = True;
+  panel3.clProSettings.BorderWidth = 1;
+  panel3.clProSettings.RoundHeight = 20;
+  panel3.clProSettings.RoundWidth = 20;
+  panel3.SetclProSettings(panel3.clProSettings);
+  
+  panel4 = istatistikForm.AddNewProPanel(VertScrollBox1, 'panel4');
+  panel4.Align = alNone;
+  panel4.Position.X = (istatistikForm.clWidth * 53) / 100;
+  panel4.Position.Y = (istatistikForm.clHeight * 40) / 100;
+  panel4.Width = (istatistikForm.clWidth * 42) / 100;
+  panel4.Height = (istatistikForm.clHeight * 25) / 100;
+  panel4.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#9092de');
+  panel4.clProSettings.BorderColor = clAlphaColor.clHexToColor('#ffffff');
+  panel4.clProSettings.IsRound = True;
+  panel4.clProSettings.BorderWidth = 1;
+  panel4.clProSettings.RoundHeight = 20;
+  panel4.clProSettings.RoundWidth = 20;
+  panel4.SetclProSettings(panel4.clProSettings);
+  
+  // Grafik paneli
+  panel6 = istatistikForm.AddNewProPanel(VertScrollBox1, 'panel6');
+  panel6.Align = alNone;
+  panel6.Position.X = (istatistikForm.clWidth * 5) / 100;
+  panel6.Position.Y = (istatistikForm.clHeight * 68) / 100;
+  panel6.Width = (istatistikForm.clWidth * 90) / 100;
+  panel6.Height = (istatistikForm.clHeight * 70) / 100;
+  panel6.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#9092de');
+  panel6.clProSettings.BorderColor = clAlphaColor.clHexToColor('#ffffff');
+  panel6.clProSettings.IsRound = True;
+  panel6.clProSettings.BorderWidth = 1;
+  panel6.clProSettings.RoundHeight = 20;
+  panel6.clProSettings.RoundWidth = 20;
+  panel6.SetclProSettings(panel6.clProSettings);
+  
+  // Yatay scroll box (grafik için)
+  HorzScrollBox1 = istatistikForm.AddNewHorzScrollBox(panel6, 'HorzScrollBox1');
+  HorzScrollBox1.Align = alClient;
+  HorzScrollBox1.ShowScrollBars = True;
+  HorzScrollBox1.Margins.Left = 10;
+  HorzScrollBox1.Margins.Top =10;
+  HorzScrollBox1.Margins.Bottom = 10;
+  HorzScrollBox1.Margins.Right = 10;
+  
+  // Label'lar
+  label2 = istatistikForm.AddNewProLabel(panel, 'label2', 'Günlük Satış Adedi');
+  label2.Align = alTop;
+  label2.Margins.Top = 7;
+  label2.Margins.Left = 7;
+  label2.Width = ((panel.Width * 30) / 100);
+  label2.Height = ((panel.Height * 30) / 100);
+  label2.clProSettings.TextSettings.Font.Style = [fsBold];
+  label2.clProSettings.FontSize = 15;
+  label2.clProSettings.FontHorzAlign = palLeading;
+  label2.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label2.SetclProSettings(label2.clProSettings);
+  
+  label3 = istatistikForm.AddNewProLabel(panel2, 'label3', 'Günlük Satış Tutarı');
+  label3.Align = alTop;
+  label3.Margins.Left = 7;
+  label3.Margins.Top = 7;
+  label3.Width = ((panel2.Width * 30) / 100);
+  label3.Height = ((panel2.Height * 30) / 100);
+  label3.clProSettings.TextSettings.Font.Style = [fsBold];
+  label3.clProSettings.FontSize = 15;
+  label3.clProSettings.FontHorzAlign = palLeading;
+  label3.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label3.SetclProSettings(label3.clProSettings);
+  
+  label4 = istatistikForm.AddNewProLabel(panel3, 'label4', 'Ortalama Satış Tutarı');
+  label4.Align = alTop;
+  label4.Margins.Left = 6;
+  label4.Margins.Top = 7;
+  label4.Width = ((panel3.Width * 30) / 100);
+  label4.Height = ((panel3.Height * 30) / 100);
+  label4.clProSettings.TextSettings.Font.Style = [fsBold];
+  label4.clProSettings.FontSize = 14;
+  label4.clProSettings.FontHorzAlign = palLeading;
+  label4.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label4.SetclProSettings(label4.clProSettings);
+  
+  label5 = istatistikForm.AddNewProLabel(panel4, 'label5', 'Aylık Toplam Ciro');
+  label5.Align = alTop;
+  label5.Margins.Left = 7;
+  label5.Margins.Top = 7;
+  label5.Width = ((panel4.Width * 30) / 100);
+  label5.Height = ((panel4.Height * 30) / 100);
+  label5.clProSettings.TextSettings.Font.Style = [fsBold];
+  label5.clProSettings.FontSize = 15;
+  label5.clProSettings.FontHorzAlign = palLeading;
+  label5.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label5.SetclProSettings(label5.clProSettings);
+  
+  // Değer label'ları
+  label6 = istatistikForm.AddNewProLabel(panel, 'label6', '0');
+  label6.Align = alNone;
+  label6.Position.X = (panel.Width * 5) / 100;
+  label6.Position.Y = (panel.Height * 40) / 100;
+  label6.Margins.Left = 7;
+  label6.Width = ((panel.Width * 100) / 100);
+  label6.Height = ((panel.Height * 60) / 100);
+  label6.clProSettings.TextSettings.Font.Style = [fsBold];
+  label6.clProSettings.FontSize = 35;
+  label6.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label6.SetclProSettings(label6.clProSettings);
+  
+  label7 = istatistikForm.AddNewProLabel(panel2, 'label7', '0');
+  label7.Align = alNone;
+  label7.Position.X = (panel2.Width * 5) / 100;
+  label7.Position.Y = (panel2.Height * 40) / 100;
+  label7.Margins.Left = 7;
+  label7.Width = ((panel.Width * 100) / 100);
+  label7.Height = ((panel.Height * 60) / 100);
+  label7.clProSettings.TextSettings.Font.Style = [fsBold];
+  label7.clProSettings.FontSize = 35;
+  label7.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label7.SetclProSettings(label7.clProSettings);
+  
+  label8 = istatistikForm.AddNewProLabel(panel3, 'label8', '0');
+  label8.Align = alNone;
+  label8.Position.X = (panel3.Width * 5) / 100;
+  label8.Position.Y = (panel3.Height * 40) / 100;
+  label8.Margins.Left = 7;
+  label8.Width = ((panel.Width * 100) / 100);
+  label8.Height = ((panel.Height * 60) / 100);
+  label8.clProSettings.TextSettings.Font.Style = [fsBold];
+  label8.clProSettings.FontSize = 35;
+  label8.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label8.SetclProSettings(label8.clProSettings);
+  
+  label9 = istatistikForm.AddNewProLabel(panel4, 'label9', '0');
+  label9.Align = alNone;
+  label9.Position.X = (panel4.Width * 5) / 100;
+  label9.Position.Y = (panel4.Height * 40) / 100;
+  label9.Margins.Left = 7;
+  label9.Width = ((panel.Width * 100) / 100);
+  label9.Height = ((panel.Height * 60) / 100);
+  label9.clProSettings.TextSettings.Font.Style = [fsBold];
+  label9.clProSettings.FontSize = 32;
+  label9.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label9.SetclProSettings(label9.clProSettings);
+  
+  // İlk veri yükleme
+  dailySalesCount;
+  dailySales;
+  ciro;
+  averageSales;
+  AddDataToChart;
+  
+  istatistikForm.Run;
+}

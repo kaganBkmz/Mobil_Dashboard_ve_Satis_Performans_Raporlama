@@ -1,0 +1,122 @@
+var
+
+kayitForm: TclForm;
+
+insertEdit: TclProEdit;
+
+
+insertBtn : TClProButton;
+
+Password, DB, isim:String;
+
+
+
+ 
+
+
+
+void Connect;
+{
+  Password = '';
+  
+  if (Clomosy.PlatformIsMobile)
+    DB = Clomosy.AppFilesPath + 'new3.db3';
+  else
+    DB = 'C:\klasor\new.db3';
+    
+  try
+  
+    Clomosy.DBSQLiteConnect(DB, Password);
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+  except
+  ShowMessage('bağlantı başarısız')
+  }
+}
+
+
+void insertTable;
+{
+
+try
+{
+
+  isim = insertEdit.Text;
+  Clomosy.DBSQLiteQuery.SQL.Text = 'INSERT INTO Login (plasiyer) VALUES ('+QuotedStr(isim)+')';
+  Clomosy.DBSQLiteQuery.OpenOrExecute;
+  ShowMessage(isim);
+  insertEdit.Text='';
+ }
+ except
+ {
+   ShowMessage('Kayıt Eklenemedi')
+ }
+}
+  
+  
+  
+}
+
+
+
+{
+
+
+  kayitForm=TclForm.Create(Self);  
+  kayitForm.SetFormColor('#5b72e6', '#6c6cd0', clGCross);
+  Connect;
+  
+  
+ //--------------kullanıcı adı label--------------------
+  insertEdit=kayitForm.AddNewProEdit(kayitForm, 'insertEdit', 'kullanıcı adı oluştur ');
+  insertEdit.Align=alNone;
+  insertEdit.Position.X = (kayitForm.clWidth*17)/100;
+  insertEdit.Position.Y = (kayitForm.clHeight*42)/100;
+  insertEdit.Height =(kayitForm.clHeight*10)/100; 
+  insertEdit.Width = (kayitForm.clWidth*66)/100;
+  insertEdit.clProSettings.RoundHeight=10;
+  insertEdit.clProSettings.RoundWidth=10;
+  insertEdit.clProSettings.FontVertAlign=palCenter;
+  insertEdit.clProSettings.fontHorzAlign=palCenter;
+  insertEdit.SetclProSettings(insertEdit.clProSettings)
+  insertEdit.MaxLength=15;
+  insertEdit.TextSettings.Font.Size = 15; 
+ 
+  
+  
+  insertBtn = kayitForm.AddNewProButton(kayitForm, 'insertBtn', 'Kaydet');
+  insertBtn.Align=alNone;
+  insertBtn.Position.X = (kayitForm.clWidth*17)/100;
+  insertBtn.Position.Y = (kayitForm.clHeight*55)/100;
+  insertBtn.Height =(kayitForm.clHeight*10)/100; 
+  insertBtn.Width = (kayitForm.clWidth*66)/100;
+  insertBtn.clProSettings.IsRound = True;
+  insertBtn.clProSettings.RoundHeight=10;
+  insertBtn.clProSettings.RoundWidth=10;
+  insertBtn.clProSettings.TextSettings.Font.Style=[fsBold];
+  insertBtn.clProSettings.FontVertAlign=palCenter;
+  insertBtn.clProSettings.fontHorzAlign=palCenter;
+  insertBtn.clProSettings.FontSize = 17;
+  insertBtn.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  insertBtn.clProSettings.BackgroundColor=clAlphaColor.clHexToColor('#1a8950');
+  insertBtn.SetclProSettings(insertBtn.clProSettings);
+ 
+ 
+ kayitForm.AddNewEvent(insertBtn,tbeOnClick,'insertTable');
+ 
+  
+  kayitForm.Run;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

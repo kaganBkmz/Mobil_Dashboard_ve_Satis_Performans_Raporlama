@@ -1,0 +1,614 @@
+var 
+
+rapor:TclForm;
+
+label1,label2,label3,label4,label5,label6:TClProLabel;
+
+DB,Password:String;
+
+panel,panel2,panel3:TclProPanel;
+
+sayi1,sayi2:Integer;
+
+date: TClProDateEdit;
+
+tarih,tarih2:String;
+
+yesterday,today:Integer;
+
+sonuc:Double;
+
+exit,dosya:TClProButton;
+
+myGrid:TclStringGrid;
+
+strList: TclStringList;
+
+dosyaStr, satir: String;
+
+qry9,qry8:TCLSQLiteQuery;
+
+void setupGrid;
+{
+  myGrid.Columns[0].Header = 'Plasiyer İsmi';
+  myGrid.Columns[1].Header = 'Toplam Satış';
+  myGrid.Columns[2].Header = 'Ortalama';
+  myGrid.Columns[3].Header = 'Ürün Çeşidi';
+  myGrid.Columns[4].Header = 'En Çok Satılan Ürün';
+  
+  myGrid.Columns[0].Width = 140;
+  myGrid.Columns[1].Width = 120;
+  myGrid.Columns[2].Width = 120;
+  myGrid.Columns[3].Width = 130;
+  myGrid.Columns[4].Width = 150;
+ 
+}
+
+
+void addDataToGrid;
+{
+
+ qry9 ='
+SELECT 
+    s.plasiyerName AS "Plasiyer İsmi",                        
+    SUM(s.price) AS "Toplam Satış",               
+    CASE 
+        WHEN SUM(s.amount) = 0 THEN 0
+        ELSE ROUND(SUM(s.price) * 1.0 / SUM(s.amount), 2)
+    END AS "Ortalama",                                         
+    COUNT(DISTINCT s.productName) || " ürün" AS "Ürün Çeşidi",
+    (
+        SELECT productName
+        FROM Satis
+        WHERE plasiyerName = s.plasiyerName
+        GROUP BY productName
+        ORDER BY SUM(amount) DESC
+        LIMIT 1
+    ) AS "En Çok Satılan Ürün"                               
+FROM 
+    Satis AS s
+GROUP BY 
+    s.plasiyerName';
+
+  qry9 = Clomosy.DBSQLiteQueryWith(qry9);
+  qry9.OpenOrExecute;
+  
+  
+  if(qry9.Found)
+  {
+    rapor.RemoveGridBinding('mylink');
+    rapor.AddNewGridBinding(myGrid,qry9,'mylink');
+    setupGrid;
+   
+  }
+  
+}
+
+void Back;
+{
+  rapor.RemoveGridBinding('mylink');
+  rapor.clHide;
+}
+
+
+
+void Connect;
+{
+  Password = '';
+  
+  if (Clomosy.PlatformIsMobile)
+    DB = Clomosy.AppFilesPath + 'new2.db3';
+  else
+    DB = 'C:\klasor\new.db3';
+    
+  try {
+    Clomosy.DBSQLiteConnect(DB, Password);
+  }
+  except 
+  {
+    ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+
+  }
+}
+
+
+
+
+void toplam;
+{
+  try 
+  {
+   
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(price) AS ciro FROM Satis';
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) {
+      label1.Text = 'Toplam Satış :  ' + Clomosy.DBSQLiteQuery.FieldByName('ciro').AsString+' TL';
+    } 
+    else 
+    {
+      label1.Text = '0';
+    }
+  }
+  except 
+  {
+     ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+  
+  }
+}
+
+  
+ 
+void average;
+{
+  try 
+  {
+   
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(price) AS toplam , SUM(amount) AS miktar FROM Satis';
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) 
+    {
+      sayi1 = Clomosy.DBSQLiteQuery.FieldByName('toplam').AsInteger;
+      sayi2 = Clomosy.DBSQLiteQuery.FieldByName('miktar').AsInteger;
+      
+      label2.Text='Ortalama Satış :  '+IntToStr(sayi1/sayi2)+' TL'
+    } 
+    else 
+    {
+      label2.Text = '0';
+    }
+  }
+  except 
+  {
+     ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+  
+  }
+}
+
+  
+
+
+void urun;
+{
+  try 
+  {
+   
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT productName
+FROM Satis
+GROUP BY productName
+ORDER BY SUM(amount) DESC
+LIMIT 1';
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) 
+    {
+      
+     label3.Text = 'En Çok Satılan Ürün :  ' + Clomosy.DBSQLiteQuery.FieldByName('productName').AsString;
+    } 
+    else 
+    {
+      label3.Text = '0';
+    }
+  }
+  except 
+  {
+     ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+  
+  }
+}
+
+
+void plasiyer;
+{
+  try 
+  {
+   
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT plasiyerName
+FROM Satis
+GROUP BY plasiyerName
+ORDER BY SUM(amount) DESC
+LIMIT 1';
+
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) 
+    {
+      
+     label4.Text = 'En Aktif Plasiyer :  ' + Clomosy.DBSQLiteQuery.FieldByName('plasiyerName').AsString;
+    } 
+    else 
+    {
+      label4.Text = '0';
+    }
+  }
+  except 
+  {
+     ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+  
+  }
+}
+
+
+
+void gunluk;
+{
+  try 
+  {
+   
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT plasiyerName
+FROM Satis
+GROUP BY plasiyerName
+ORDER BY SUM(amount) DESC
+LIMIT 1';
+
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) 
+    {
+      
+     label4.Text = 'En Aktif Plasiyer :  ' + Clomosy.DBSQLiteQuery.FieldByName('plasiyerName').AsString;
+    } 
+    else 
+    {
+      label4.Text = '0';
+    }
+  }
+  except 
+  {
+     ShowMessage('Veritabanı bağlantı hatası: ' + LastExceptionMessage);
+  }
+  
+  }
+}
+
+
+void gunlukSatis;
+{
+  try 
+  {
+    tarih = FormatDateTime('yyyy-mm-dd', date.Date);
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(price) AS toplam_satis FROM Satis WHERE currentdateDB = ' + QuotedStr(tarih);
+    
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) 
+    {
+      
+     today = StrToFloat(Clomosy.DBSQLiteQuery.FieldByName('toplam_satis').AsString);
+     
+     label5.Text = 'Bugünkü Toplam Satış :  ' + Clomosy.DBSQLiteQuery.FieldByName('toplam_satis').AsString;
+     
+    } 
+    else 
+    {
+      today = 1;
+    }
+    
+    
+    
+    tarih2 = FormatDateTime('yyyy-mm-dd', date.Date-1);
+    
+    Clomosy.DBSQLiteQuery.SQL.Text = 'SELECT SUM(price) AS toplam_satis2 FROM Satis WHERE currentdateDB = ' + QuotedStr(tarih2);
+    
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+    if (not Clomosy.DBSQLiteQuery.Eof) 
+    {
+      
+     yesterday = StrToFloat(Clomosy.DBSQLiteQuery.FieldByName('toplam_satis2').AsString);
+     
+    } 
+    else 
+    {
+     yesterday = 1;
+    }
+    
+    
+    
+    sonuc = ((today - yesterday)/yesterday)*100;
+    
+    if(sonuc>0)
+    {
+      label6.clProSettings.FontColor = clAlphaColor.clHexToColor('#1fbd00');
+      label6.SetclProSettings(label6.clProSettings);
+      label6.Text ='  ( Düne Göre  %  '+ IntToStr(sonuc)+' )';
+     
+     
+    }
+    else if(sonuc < 0 )
+    {
+      label6.clProSettings.FontColor = clAlphaColor.clHexToColor('#c70000');
+      label6.SetclProSettings(label6.clProSettings);
+      label6.Text ='  ( Düne Göre  %  '+ IntToStr(sonuc)+' )';
+     
+    }
+    else
+    {
+    
+    }
+    
+  }
+  except 
+  {
+     ShowMessage('günlük satış bilgisi: ' + LastExceptionMessage);
+  }
+  
+  }
+}
+
+
+
+void save;
+{
+   qry8 ='
+SELECT 
+    s.plasiyerName AS "Plasiyer İsmi",                        
+    SUM(s.price) AS "Toplam Satış",               
+    CASE 
+        WHEN SUM(s.amount) = 0 THEN 0
+        ELSE ROUND(SUM(s.price) * 1.0 / SUM(s.amount), 2)
+    END AS "Ortalama",                                         
+    COUNT(DISTINCT s.productName) || " ürün" AS "Ürün Çeşidi",
+    (
+        SELECT productName
+        FROM Satis
+        WHERE plasiyerName = s.plasiyerName
+        GROUP BY productName
+        ORDER BY SUM(amount) DESC
+        LIMIT 1
+    ) AS "En Çok Satılan Ürün"                               
+FROM 
+    Satis AS s
+GROUP BY 
+    s.plasiyerName';
+
+ 
+  
+  qry8 = Clomosy.DBSQLiteQueryWith(qry8);
+  qry8.OpenOrExecute;
+  
+   strList.Add('Plasiyer İsmi | Toplam Satış | Ortalama | Ürün Çeşidi | En Çok Satılan Ürün ');
+   
+   while (not qry8.Eof){
+     
+   
+    satir = qry8.FieldByName('Plasiyer İsmi').AsString + '  |  ' +
+             qry8.FieldByName('Toplam Satış').AsString + '  |  ' +
+             qry8.FieldByName('Ortalama').AsString + '  |  ' +
+             qry8.FieldByName('Ürün Çeşidi').AsString + '  |  ' +
+             qry8.FieldByName('En Çok Satılan Ürün').AsString ;
+             
+   
+   
+    strList.Add(satir);
+    qry8.Next;
+   }
+   
+   
+   
+   
+  dosyaStr =  clPathCombine('MyFile.txt', Clomosy.AppFilesPath);
+  strList.SaveToFile(dosyaStr, 0);
+  ShowMessage(strList.Text);
+ 
+
+
+}
+ 
+
+
+{
+  rapor=TclForm.Create(Self);  
+  rapor.SetFormColor('#009491', '', clGNone);
+  rapor.LytTopBar.Visible = False;
+  Connect;
+  
+  date = rapor.AddNewProDateEdit(rapor, 'date');
+  date.Visible = False;
+  
+  panel=rapor.AddNewProPanel(rapor, 'panel');
+  panel2=rapor.AddNewProPanel(rapor, 'panel2');
+  panel3=rapor.AddNewProPanel(rapor, 'panel3');
+  
+  
+  
+  panel2.Align = alMostTop;
+  panel2.Margins.Top = 5;
+  panel2.Margins.Left = 5;
+  panel2.Margins.Right = 5;
+  panel2.Height = (rapor.clHeight*7)/100;
+  panel2.Width =  (rapor.clWidth*100)/100;
+  panel2.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel2.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#ffffff');
+  panel2.clProSettings.IsRound = True;
+  panel2.clProSettings.BorderWidth = 2;
+  panel2.clProSettings.RoundHeight = 10;
+  panel2.clProSettings.RoundWidth = 10;
+  panel2.SetclProSettings(panel2.clProSettings);
+  
+  
+   
+  exit = rapor.AddNewProButton(panel2, 'exit', 'Geri Dön');
+  exit.Align = alNone;
+  exit.Position.X = (panel2.Width*2)/100;
+  exit.Position.Y = (panel2.Height*10)/100;
+  exit.Width = (panel2.Width*25)/100;
+  exit.Height =(panel2.Height*80)/100; 
+  exit.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#008071');
+  exit.clProSettings.BorderColor = clAlphaColor.clHexToColor('#000000');
+  exit.clProSettings.IsRound = True;
+  exit.clProSettings.BorderWidth = 1;
+  exit.clProSettings.FontSize = 15;
+  exit.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  exit.clProSettings.TextSettings.Font.Style=[fsBold];
+  exit.SetclProSettings(exit.clProSettings);
+  
+
+  
+  panel.Align = alTop;
+  panel.Margins.Top = 2;
+  panel.Margins.Left = 5;
+  panel.Margins.Right = 5;
+  panel.Height = (rapor.clHeight*40)/100;
+  panel.Width =  (rapor.clWidth*100)/100;
+  panel.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#313444');
+  panel.clProSettings.IsRound = True;
+  panel.clProSettings.BorderWidth = 2;
+  panel.clProSettings.RoundHeight = 10;
+  panel.clProSettings.RoundWidth = 10;
+  panel.SetclProSettings(panel.clProSettings);
+
+  
+   
+  panel3.Align = alClient;
+  panel3.Margins.Top = 3;
+  panel3.Margins.Left = 5;
+  panel3.Margins.Right = 5;
+  panel3.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel3.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#ffffff');
+  panel3.clProSettings.IsRound = True;
+  panel3.clProSettings.BorderWidth = 2;
+  panel3.clProSettings.RoundHeight = 10;
+  panel3.clProSettings.RoundWidth = 10;
+  panel3.SetclProSettings(panel3.clProSettings);
+  
+  
+  
+ 
+  label1 = rapor.AddNewProLabel(panel, 'label1', '');
+  label1.Align = alNone;
+  label1.Position.X = (panel.Width*5)/100;
+  label1.Position.Y = (panel.Height*2)/100;
+  label1.Width = (panel.Width*100)/100;
+  label1.Height =(panel.Height*18)/100; 
+  label1.clProSettings.TextSettings.Font.Style = [fsBold];
+  label1.clProSettings.FontSize = 18;
+  label1.clProSettings.FontVertAlign = palCenter;
+  label1.clProSettings.FontHorzAlign = palLeading;
+  label1.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label1.SetclProSettings(label1.clProSettings);
+  
+  
+  
+  label2 = rapor.AddNewProLabel(panel, 'label2', '');
+  label2.Align = alNone;
+  label2.Position.X = (panel.Width*5)/100;
+  label2.Position.Y = (panel.Height*22)/100;
+  label2.Width = (panel.Width*100)/100;
+  label2.Height =(panel.Height*18)/100; 
+  label2.clProSettings.TextSettings.Font.Style = [fsBold];
+  label2.clProSettings.FontSize = 18;
+  label2.clProSettings.FontVertAlign = palCenter;
+  label2.clProSettings.FontHorzAlign = palLeading;
+  label2.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label2.SetclProSettings(label2.clProSettings);
+  
+  
+  label3 = rapor.AddNewProLabel(panel, 'label3', '');
+  label3.Align = alNone;
+  label3.Position.X = (panel.Width*5)/100;
+  label3.Position.Y = (panel.Height*42)/100;
+  label3.Width = (panel.Width*100)/100;
+  label3.Height =(panel.Height*18)/100; 
+  label3.clProSettings.TextSettings.Font.Style = [fsBold];
+  label3.clProSettings.FontSize = 18;
+  label3.clProSettings.FontVertAlign = palCenter;
+  label3.clProSettings.FontHorzAlign = palLeading;
+  label3.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label3.SetclProSettings(label3.clProSettings);
+  
+  
+  label4 = rapor.AddNewProLabel(panel, 'label4', '');
+  label4.Align = alNone;
+  label4.Position.X = (panel.Width*5)/100;
+  label4.Position.Y = (panel.Height*62)/100;
+  label4.Width = (panel.Width*100)/100;
+  label4.Height =(panel.Height*18)/100; 
+  label4.clProSettings.TextSettings.Font.Style = [fsBold];
+  label4.clProSettings.FontSize = 18;
+  label4.clProSettings.FontVertAlign = palCenter;
+  label4.clProSettings.FontHorzAlign = palLeading;
+  label4.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label4.SetclProSettings(label4.clProSettings);
+  
+  
+  label5 = rapor.AddNewProLabel(panel, 'label5', '');
+  label5.Align = alNone;
+  label5.Position.X = (panel.Width*5)/100;
+  label5.Position.Y = (panel.Height*80)/100;
+  label5.Width = (panel.Width*40)/100;
+  label5.Height =(panel.Height*18)/100; 
+  label5.clProSettings.TextSettings.Font.Style = [fsBold];
+  label5.clProSettings.AutoSize = True;
+  label5.clProSettings.FontVertAlign = palCenter;
+  label5.clProSettings.FontHorzAlign = palLeading;
+  label5.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label5.SetclProSettings(label5.clProSettings);
+  
+  
+  label6 = rapor.AddNewProLabel(panel, 'label6', '');
+  label6.Align = alNone;
+  label6.Position.X = (panel.Width*57)/100;
+  label6.Position.Y = (panel.Height*80)/100;
+  label6.Width = (panel.Width*40)/100;
+  label6.Height =(panel.Height*18)/100; 
+  label6.clProSettings.TextSettings.Font.Style = [fsBold];
+  label5.clProSettings.AutoSize = True;
+  label6.clProSettings.FontVertAlign = palCenter;
+  label6.clProSettings.FontHorzAlign = palLeading;
+  label6.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  label6.SetclProSettings(label6.clProSettings);
+  
+  
+  toplam;
+  average;
+  urun;
+  plasiyer;
+  gunlukSatis;
+  
+  
+  myGrid=rapor.AddNewStringGrid(panel3,'myGrid');
+  myGrid.Align=alClient;
+  myGrid.ReadOnly=True;
+  addDataToGrid;
+
+  
+   
+  dosya = rapor.AddNewProButton(panel2, 'dosya', '.txt Dosya');
+  dosya.Align = alNone;
+  dosya.Position.X = (panel2.Width*68)/100;
+  dosya.Position.Y = (panel2.Height*10)/100;
+  dosya.Width = (panel2.Width*25)/100;
+  dosya.Height =(panel2.Height*80)/100; 
+  dosya.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#7d7d7d');
+  dosya.clProSettings.BorderColor = clAlphaColor.clHexToColor('#000000');
+  dosya.clProSettings.IsRound = True;
+  dosya.clProSettings.BorderWidth = 1;
+  dosya.clProSettings.FontSize = 15;
+  dosya.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  dosya.clProSettings.TextSettings.Font.Style=[fsBold];
+  dosya.SetclProSettings(dosya.clProSettings);
+  
+  strList = Clomosy.StringListNew;
+  
+  
+  
+  rapor.AddNewEvent(exit,tbeOnClick,'Back');
+  rapor.AddNewEvent(dosya,tbeOnClick,'save');
+  rapor.Run;
+  
+  
+}

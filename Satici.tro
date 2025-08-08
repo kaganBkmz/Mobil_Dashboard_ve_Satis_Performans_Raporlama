@@ -1,0 +1,466 @@
+var 
+
+
+myform: TclForm;
+
+proLbl1,proLbl2,proLbl3,proLbl4,proLbl5,proLbl6,prolbl7,prolbl8 : TClProLabel;
+
+panel,panel2,panel3: TclProPanel;
+
+edit,edit2,edit3: TclProEdit;
+
+combo,combo2: TCLComboBox;
+
+memo: TCLMemo;
+
+button,button2:TClProButton;
+
+MyMQTT : TclMQTT;
+
+jSON,urunAdi,satisTuru,fiyat,aciklama,kisi,adet:String;
+
+date:TClProDateEdit;
+
+qry8:TCLSQLiteQuery;
+DB,Password:String;
+
+
+
+void creatDatabaseAndConnect;
+{
+  Password = '';
+  
+  if (Clomosy.PlatformIsMobile)
+    DB = Clomosy.AppFilesPath + 'new3.db3';
+  else
+    DB = 'C:\klasor\new.db3';
+    
+  try
+  
+    Clomosy.DBSQLiteConnect(DB, Password);
+    Clomosy.DBSQLiteQuery.Sql.Text='CREATE TABLE IF NOT EXISTS PlasiyerTable(plasiyerName Text, product Text,dailyCount INTEGER,price INTEGER,currentdate Text,currentdateMonth Text)';
+    Clomosy.DBSQLiteQuery.OpenOrExecute;
+    
+  except
+  ShowMessage('tablo oluşturuluyor...')
+  }
+}
+
+void MyMQTTStatusChanged;
+{
+  if(MyMQTT.Connected)
+  ShowMessage('Bağlandı')
+  else
+  ShowMessage('Bağlantı koptu!')
+}
+
+
+
+
+void istatistiklerBtn;
+{
+  
+  Clomosy.RunUnit('uIstatistikler');
+  
+  
+}
+
+
+void addcomboBox;
+{
+  
+     
+  qry8 ='SELECT DISTINCT product FROM PlasiyerTable';
+  qry8 = Clomosy.DBSQLiteQueryWith(qry8);
+  qry8.OpenOrExecute;
+  
+  combo2.Clear;
+  combo2.AddItem('ürün seçiniz','1');
+  
+  while (not qry8.Eof)
+  {
+    combo2.AddItem(qry8.FieldByName('product').AsString,qry8.FieldByName('producT').AsString);
+    qry8.Next;
+  }
+  qry8.Free;
+  
+  
+}
+void ClickBtn;
+{
+  
+try
+{
+
+  if(combo.GetValueIndex(combo.ItemIndex)==1)  
+  {
+  ShowMessage('Satış türü seçin !');
+  exit;
+  }
+  
+  
+ 
+  
+  if(edit2.Text=='')
+  {
+  ShowMessage('Satış tutarı giriniz !')
+  exit;
+  }
+  
+  
+  if(memo.Text=='')
+  {
+  memo.Text=' ';
+  }
+  
+  
+  if(edit3.Text=='')
+  {
+  ShowMessage('Ürün Adedi Giriniz !');
+  exit;
+  }
+  
+   if((combo2.GetItemIndex(combo2.ItemIndex) == 'ürün seçiniz') && (edit.Text == ''))
+  {
+    ShowMessage('ürün adı veya yeni ürün giriniz');
+    exit;
+  }
+  else if ((edit.Text=='') && (combo2.GetItemIndex(combo2.ItemIndex) <> 'ürün seçiniz'))
+  {
+    urunAdi=combo2.GetItemIndex(combo2.ItemIndex)
+  }
+  else
+  {
+    urunAdi=edit.Text;
+  }
+  
+  
+  
+  
+  kisi=Clomosy.GlobalVariableString;
+  satisTuru=combo.GetItemIndex(combo.ItemIndex);
+  fiyat=edit2.Text;
+  aciklama=memo.Text;
+  adet=edit3.Text;
+  
+  
+  jSON=('{"plasiyer":"'+ kisi + '",'+'"urun_adi":"'+ urunAdi +'",'+'"Satış":"' + fiyat + '",'+'"Adet":"'+ adet +'",'+'"satis_turu":"' + satisTuru + '",'+'"Aciklama":"' + aciklama + '"}');
+  MyMQTT.Send(jSON);
+  
+  //database e ekleme
+  Clomosy.DBSQLiteQuery.SQL.Text = 'INSERT INTO PlasiyerTable (plasiyerName,product,dailyCount,price,currentdate,currentdateMonth) VALUES ('+QuotedStr(kisi)+ ','+QuotedStr(urunAdi)+ ','+IntToStr(adet)+','+IntToStr(fiyat)+','+QuotedStr(FormatDateTime('yyyy-mm-dd', date.Date))+','+QuotedStr(FormatDateTime('yyyy-mm', date.Date))+')';
+  Clomosy.DBSQLiteQuery.OpenOrExecute;
+
+
+
+
+ 
+  
+
+  edit.Text='';
+  edit2.Text='';
+  edit3.Text='';
+  memo.Text='';
+  addcomboBox;
+  combo.ItemIndex = 0;
+  combo2.ItemIndex = 0;
+  
+  
+  
+  
+ }
+ except
+  ShowMessage(LastExceptionMessage);
+ }
+ 
+}
+
+
+
+
+
+
+
+{
+  myform = TclForm.Create(self);
+  myform.SetFormColor('#e7e7e7', '#e7e7e7', clGVertical);
+  myform.LytTopBar.Visible = False;
+  creatDatabaseAndConnect;
+  MyMQTT =myform.addnewMQTTConnection(myform,'MyMQTT');
+  MyMQTT.Channel = 'Chat';
+  MyMQTT.Connect;
+  
+  date = myform.AddNewProDateEdit(myform,'date');
+  date.Visible=False;
+
+  //----------------------------------------------------------------------------
+
+  panel=myform.AddNewProPanel(myform,'panel');
+  panel.Align = alNone;
+  panel.Position.X = (myform.clWidth*4)/100;
+  panel.Position.Y = (myform.clHeight*2)/100;
+  panel.Margins.Right=(myform.clWidth*4)/100;
+  panel.Height =(myform.clHeight*13)/100; 
+  panel.Width = (myform.clWidth*92)/100;
+  panel.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#6c3fe7');
+  panel.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel.clProSettings.IsRound = True;
+  panel.clProSettings.BorderWidth = 1;
+  panel.SetclProSettings(panel.clProSettings);
+
+  proLbl1 = myform.AddNewProLabel(panel,'proLbl1',Clomosy.GlobalVariableString);
+  proLbl1.Align = alMostTop;
+  proLbl1.Margins.Top = 8;
+  proLbl1.Margins.Left = (panel.Width*5)/100;
+  proLbl1.Height =(panel.Height*46)/100; 
+  proLbl1.clProSettings.FontSize = 33;
+  proLbl1.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  proLbl1.clProSettings.TextSettings.Font.Style=[fsBold];
+  proLbl1.SetclProSettings(proLbl1.clProSettings);
+  
+  proLbl2 = myform.AddNewProLabel(panel,'proLbl2','Ürün Giriş Formu');
+  proLbl2.Align = alTop;
+  proLbl2.Margins.Top = 2;
+  proLbl2.Margins.Left = (panel.Width*5)/100;
+  proLbl2.Height =(panel.Height*30)/100; 
+  proLbl2.clProSettings.FontSize = 17;
+  proLbl2.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  proLbl2.SetclProSettings(proLbl2.clProSettings);
+  
+  panel2=myform.AddNewProPanel(myform,'panel2');
+  panel2.Align = alNone;
+  panel2.Position.X = (myform.clWidth*4)/100;
+  panel2.Position.Y = (myform.clHeight*16)/100;
+  panel2.Margins.Right=(myform.clWidth*4)/100;
+  panel2.Height =(myform.clHeight*55)/100; 
+  panel2.Width = (myform.clWidth*92)/100;
+  panel2.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#eef1f6');
+  panel2.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel2.clProSettings.IsRound = True;
+  panel2.clProSettings.BorderWidth = 1;
+  panel2.SetclProSettings(panel2.clProSettings);
+  
+  proLbl3 = myform.AddNewProLabel(panel2,'proLbl3','Yeni Ürün Adı');
+  proLbl3.Align = alNone;
+  proLbl3.Position.X = (panel2.Width*55)/100;
+  proLbl3.Position.Y = (panel2.Height*3)/100;
+  proLbl3.Height =(panel2.Height*8)/100; 
+  proLbl3.Width =(panel2.Width*40)/100; 
+  proLbl3.clProSettings.FontSize = 14;
+  proLbl3.clProSettings.FontColor=clAlphaColor.clHexToColor('#000000');
+  proLbl3.SetclProSettings(proLbl3.clProSettings);
+  
+  
+  
+  edit = myform.AddNewProEdit(panel2,'edit','    Ürün adını giriniz');
+  edit.Align = alNone;
+  edit.Position.X = (panel2.Width*55)/100;
+  edit.Position.Y = (panel2.Height*10)/100;
+  edit.Height =(panel2.Height*10)/100; 
+  edit.Width =(panel2.Width*40)/100; 
+  edit.clProSettings.FontSize = 17;
+  edit.clProSettings.TextSettings.Font.Style=[fsBold];
+  edit.clProSettings.FontSize = 30;
+  edit.clProSettings.FontHorzAlign =palLeading;
+  edit.clProSettings.BorderColor = clAlphaColor.clHexToColor('#9e9e9e');
+  edit.clProSettings.IsRound = True;
+  edit.clProSettings.BorderWidth = 1;
+  edit.clProSettings.RoundHeight = 10;
+  edit.clProSettings.RoundWidth = 10;
+  edit.SetclProSettings(edit.clProSettings);
+  
+  
+  prolbl8 = myform.AddNewProLabel(panel2,'prolbl8','Ürün Adı Seç');
+  prolbl8.Align = alNone;
+  prolbl8.Position.X = (panel2.Width*5)/100;
+  prolbl8.Position.Y = (panel2.Height*3)/100;
+  prolbl8.Height =(panel2.Height*8)/100; 
+  prolbl8.Width =(panel2.Width*40)/100; 
+  prolbl8.clProSettings.FontSize = 14;
+  prolbl8.clProSettings.FontColor=clAlphaColor.clHexToColor('#000000');
+  prolbl8.SetclProSettings(prolbl8.clProSettings);
+  
+  
+  combo2 = myform.AddNewComboBox(panel2,'combo2');
+  combo2.AddItem('ürün seçiniz','1');
+  combo2.Align = alTop;
+  combo2.Margins.Left = (panel2.Width*5)/100;
+  combo2.Margins.Top = (panel2.Height*11)/100;
+  combo2.Margins.Right = (panel2.Width*55)/100;
+  combo2.Height =(panel2.Height*10)/100; 
+  combo2.Width =(panel2.Width*40)/100; 
+
+  
+  
+  
+  
+  proLbl4 = myform.AddNewProLabel(panel2,'proLbl4','Toplam Satış Tutarı');
+  proLbl4.Align = alNone;
+  proLbl4.Position.X = (panel2.Width*5)/100;
+  proLbl4.Position.Y = (panel2.Height*27)/100;
+  proLbl4.Height =(panel2.Height*8)/100; 
+  proLbl4.Width =(panel2.Width*40)/100; 
+  proLbl4.clProSettings.FontSize = 14;
+  proLbl4.clProSettings.FontColor=clAlphaColor.clHexToColor('#000000');
+  proLbl4.SetclProSettings(proLbl4.clProSettings);
+  
+  
+  edit2 = myform.AddNewProEdit(panel2,'edit2','    TL  0.00');
+  edit2.Align = alNone;
+  edit2.Position.X = (panel2.Width*5)/100;
+  edit2.Position.Y = (panel2.Height*33)/100;
+  edit2.Height =(panel2.Height*10)/100; 
+  edit2.Width =(panel2.Width*90)/100; 
+  edit2.clProSettings.FontSize = 17;
+  edit2.clProSettings.TextSettings.Font.Style=[fsBold];
+  edit2.clProSettings.FontSize = 30;
+  edit2.clProSettings.FontHorzAlign =palLeading;
+  edit2.clProSettings.BorderColor = clAlphaColor.clHexToColor('#9e9e9e');
+  edit2.clProSettings.IsRound = True;
+  edit2.clProSettings.BorderWidth = 1;
+  edit2.clProSettings.RoundHeight = 10;
+  edit2.clProSettings.RoundWidth = 10;
+  edit2.SetclProSettings(edit2.clProSettings);
+  edit2.clTypeOfField = taFloat;
+  
+  
+   
+  prolbl7 = myform.AddNewProLabel(panel2,'prolbl7','Ürün Adedi');
+  prolbl7.Align = alNone;
+  prolbl7.Position.X = (panel2.Width*5)/100;
+  prolbl7.Position.Y = (panel2.Height*50)/100;
+  prolbl7.Height =(panel2.Height*8)/100; 
+  prolbl7.Width =(panel2.Width*40)/100; 
+  prolbl7.clProSettings.FontSize = 14;
+  prolbl7.clProSettings.FontColor=clAlphaColor.clHexToColor('#000000');
+  prolbl7.SetclProSettings(prolbl7.clProSettings);
+  
+  
+  edit3 = myform.AddNewProEdit(panel2,'edit3','    Ürün Adedini Giriniz (miktar)');
+  edit3.Align = alNone;
+  edit3.Position.X = (panel2.Width*5)/100;
+  edit3.Position.Y = (panel2.Height*56)/100;
+  edit3.Height =(panel2.Height*10)/100; 
+  edit3.Width =(panel2.Width*90)/100; 
+  edit3.clProSettings.FontSize = 17;
+  edit3.clProSettings.TextSettings.Font.Style=[fsBold];
+  edit3.clProSettings.FontSize = 30;
+  edit3.clProSettings.FontHorzAlign =palLeading;
+  edit3.clProSettings.BorderColor = clAlphaColor.clHexToColor('#9e9e9e');
+  edit3.clProSettings.IsRound = True;
+  edit3.clProSettings.BorderWidth = 1;
+  edit3.clProSettings.RoundHeight = 10;
+  edit3.clProSettings.RoundWidth = 10;
+  edit3.SetclProSettings(edit3.clProSettings);
+  edit3.clTypeOfField = taFloat;
+  
+  
+  
+  proLbl6 = myform.AddNewProLabel(panel2,'proLbl6','Açıklama');
+  proLbl6.Align = alNone;
+  proLbl6.Position.X = (panel2.Width*5)/100;
+  proLbl6.Position.Y = (panel2.Height*72)/100;
+  proLbl6.Height =(panel2.Height*8)/100; 
+  proLbl6.Width =(panel2.Width*40)/100; 
+  proLbl6.clProSettings.FontSize = 14;
+  proLbl6.clProSettings.FontColor=clAlphaColor.clHexToColor('#000000');
+  proLbl6.SetclProSettings(proLbl6.clProSettings);
+  
+  
+  
+  
+  memo = MyForm.AddNewMemo(panel2,'memo','');
+  memo.StyledSettings = ssFamily;
+  memo.Align=alNone;
+  memo.Position.X = (panel2.Width*5)/100;
+  memo.Position.Y = (panel2.Height*78)/100;
+  memo.Height =(panel2.Height*15)/100; 
+  memo.Width =(panel2.Width*90)/100; 
+  memo.TextSettings.WordWrap = True;
+  memo.ScrollTo(0,memo.Lines.Count*memo.Lines.Count,True);
+  
+
+   //----------------------------------------------------------------------------
+  
+  panel3=myform.AddNewProPanel(myform,'panel3');
+  panel3.Align = alNone;
+  panel3.Position.X = (myform.clWidth*4)/100;
+  panel3.Position.Y = (myform.clHeight*72)/100;
+  panel3.Margins.Right=(myform.clWidth*4)/100;
+  panel3.Height =(myform.clHeight*25)/100; 
+  panel3.Width = (myform.clWidth*92)/100;
+  panel3.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#eef1f6');
+  panel3.clProSettings.BorderColor = clAlphaColor.clHexToColor('#6b6b6b2');
+  panel3.clProSettings.IsRound = True;
+  panel3.clProSettings.BorderWidth = 1;
+  panel3.SetclProSettings(panel3.clProSettings);
+  
+  //----------------------------------------------------------------------------
+  
+ 
+  
+  
+  proLbl5 = myform.AddNewProLabel(panel3,'proLbl5','Satış Türü');
+  proLbl5.Align = alNone;
+  proLbl5.Position.X = (panel3.Width*5)/100;
+  proLbl5.Position.Y = (panel3.Height*5)/100;
+  proLbl5.Height =(panel3.Height*12)/100; 
+  proLbl5.Width =(panel3.Width*40)/100; 
+  proLbl5.clProSettings.FontSize = 14;
+  proLbl5.clProSettings.FontColor=clAlphaColor.clHexToColor('#000000');
+  proLbl5.SetclProSettings(proLbl5.clProSettings);
+  
+  
+  combo = myform.AddNewComboBox(panel3,'combo');
+  combo.AddItem('Satış türü seçin','1');
+  combo.AddItem('Nakit','2');
+  combo.AddItem('Kredi','3');
+  combo.AddItem('Taksit','4');
+  combo.Align = alTop;
+  combo.Margins.Left = (panel3.Width*5)/100;
+  combo.Margins.Top = (panel3.Height*20)/100;
+  combo.Margins.Right = (panel3.Width*5)/100;
+  combo.Height =(panel3.Height*27)/100; 
+  combo.Width =(panel3.Width*90)/100; 
+  
+  button= myform.AddNewProButton(panel3, 'button', 'Kaydet');
+  button.Align = alNone;
+  button.Position.X = (panel3.Width*10)/100;
+  button.Position.Y = (panel3.Height*55)/100;
+  button.Width = (panel3.Width*35)/100;
+  button.Height =(panel3.Height*33)/100; 
+  button.clProSettings.TextSettings.Font.Style=[fsBold];
+  button.clProSettings.FontSize = 15;
+  button.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  button.clProSettings.BackgroundColor=clAlphaColor.clHexToColor('#00997a')
+  button.clProSettings.IsRound = True;
+  button.clProSettings.RoundHeight = 10;
+  button.clProSettings.RoundWidth = 10;
+  button.SetclProSettings(button.clProSettings);
+  
+
+  button2= myform.AddNewProButton(panel3, 'button2', 'istatistikler');
+  button2.Align = alNone;
+  button2.Position.X = (panel3.Width*55)/100;
+  button2.Position.Y = (panel3.Height*55)/100;
+  button2.Width = (panel3.Width*35)/100;
+  button2.Height =(panel3.Height*33)/100; 
+  button2.clProSettings.TextSettings.Font.Style=[fsBold];
+  button2.clProSettings.FontSize = 15;
+  button2.clProSettings.FontColor=clAlphaColor.clHexToColor('#ffffff');
+  button2.clProSettings.BackgroundColor=clAlphaColor.clHexToColor('#d6a800')
+  button2.clProSettings.IsRound = True;
+  button2.clProSettings.RoundHeight = 10;
+  button2.clProSettings.RoundWidth = 10;
+  button2.SetclProSettings(button2.clProSettings);
+  
+  addcomboBox;
+  
+  myform.AddNewEvent(button,tbeOnClick,'ClickBtn');
+  myform.AddNewEvent(button2,tbeOnClick,'istatistiklerBtn');
+  myform.AddNewEvent(MyMQTT,tbeOnMQTTStatusChanged,'MyMQTTStatusChanged');
+  
+
+  myform.Run;
+  
+}
